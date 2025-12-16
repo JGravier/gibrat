@@ -1,4 +1,6 @@
-library(parallel)
+library(future)
+library(future.apply)
+plan(multisession) # parallelly via background R sessions on current machine
 
 
 ############ COMPUTE_GROWTHTABLE ############
@@ -39,7 +41,7 @@ run_simulation <- function (df, reps)
     yearlyGT <- compute_yearly_growth_table(df)
     growth_table <- expand_growth_table(yearlyGT)
     
-    simList <- mclapply(X=c(1:reps),function (x) run_replication(obs_data=df, growthtable=growth_table ), mc.cores=24)
+    simList <- future_lapply(X=c(1:reps),function (x) run_replication(obs_data=df, growthtable=growth_table ))
     L <- length(simList)
     RC <- dim(simList[[1]])
     simArray <- array(unlist(simList), dim=c(RC[1], RC[2], L))
