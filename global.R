@@ -1,5 +1,5 @@
 library(future)
-library(future.apply)
+library(future.apply) # for Windows
 plan(multisession) # parallelly via background R sessions on current machine
 
 
@@ -38,10 +38,10 @@ compute_growthtable <- function (df)
 run_simulation <- function (df, reps)
 {
     #growth_table1 <- compute_growthtable(df=df)
-    yearlyGT <- compute_yearly_growth_table(df)
-    growth_table <- expand_growth_table(yearlyGT)
+    yearlyGT <- compute_yearly_growth_table(df = df)
+    growth_table <- expand_growth_table(growthTable = yearlyGT)
     
-    simList <- future_lapply(X=c(1:reps),function (x) run_replication(obs_data=df, growthtable=growth_table ))
+    simList <- future_lapply(X=c(1:reps),function (x) run_replication(obs_data=df, growthtable=growth_table), future.seed=TRUE)
     L <- length(simList)
     RC <- dim(simList[[1]])
     simArray <- array(unlist(simList), dim=c(RC[1], RC[2], L))
@@ -55,24 +55,25 @@ run_simulation <- function (df, reps)
 ############ RUN_REPLICATION ############
 run_replication <- function (obs_data, growthtable)
 {
-    initial_data <- obs_data[1]
-    timesteps <- length(growthtable)
-    my_replication <- obs_data
-    my_replication[,2:timesteps+1] <- NA
-    cities_nb <- nrow(my_replication)
+    initial_data <- obs_data[1] # select first date
+    timesteps <- length(growthtable) # N times steps equal the length of the growth table (i.e. ncol df -1)
+    my_replication <- obs_data # data observed
+    my_replication[,2:timesteps+1] <- NA # from second to last col, fill with NA
+    cities_nb <- nrow(obs_data) # N cities studied
     growthmean <- as.double(growthtable[1,])
     growthsd <- as.double(growthtable[2,])
     my_replication_matrix <- as.matrix(my_replication)
+    # compute Gibrat
     for (i in 1:timesteps)
     {
         currentGrowthMean <- growthmean[i]
         currentGrowthSd <- growthsd[i]
         for (j in 1:cities_nb)
         {
-            currentPop <- my_replication_matrix[j,i]
-            normalGrowthRate <- rnorm(1, mean=currentGrowthMean, sd=currentGrowthSd)
-            newPop <- currentPop * (1 + normalGrowthRate/100)
-            my_replication_matrix[j,i+1] <-  ifelse(newPop > 0, newPop, 1)
+            currentPop <- my_replication_matrix[j,i] # select j city and i timestep
+            normalGrowthRate <- rnorm(n = 1, mean = currentGrowthMean, sd = currentGrowthSd) # random generation of growth rate for the normal distribution
+            newPop <- currentPop * (1 + normalGrowthRate/100) # compute new population
+            my_replication_matrix[j,i+1] <- ifelse(newPop > 0, newPop, 1) # fill matrix of population for the j city and i+1 timestep
         }
     }
     my_replication[] <- my_replication_matrix[]
@@ -101,7 +102,7 @@ create_rank_tables <- function (obsdata, simMean)
 compute_yearly_growth_table <- function(df)
 {
     growthratetable <- df[1:ncol(df)-1]
-    # Creation des noms de périodes
+    # Create period names in growth matrix
     for (i in 1:ncol(growthratetable))
     {
         t0_name <- colnames(df[i])
@@ -113,20 +114,18 @@ compute_yearly_growth_table <- function(df)
     growthratetable_matrix <- as.matrix(growthratetable)
     df_matrix <- as.matrix(df)
     
-    # On le remplit avec les taux de croissance
+    # Fill matrix with annual growth rates
     for (rownb in 1:nrow(growthratetable_matrix))
     {
         for (colnb in 1:ncol(growthratetable_matrix))
         {
-            diffDate <- as.numeric(colnames(df_matrix)[colnb + 1]) - as.numeric(colnames(df_matrix)[colnb])
-            
-            firstPop <- df_matrix[rownb, colnb]
+            diffDate <- as.numeric(colnames(df_matrix)[colnb + 1]) - as.numeric(colnames(df_matrix)[colnb]) # t - t_0
+            firstPop <- df_matrix[rownb, colnb] 
             lastPop <- df_matrix[rownb, colnb + 1]
-            growthratetable_matrix[rownb, colnb] <- ((lastPop / firstPop)^(1/diffDate) - 1) * 100
+            growthratetable_matrix[rownb, colnb] <- ((lastPop / firstPop)^(1/diffDate) - 1) * 100 # annual growth rate
         }
     }
     growthratetable[] <- growthratetable_matrix[]
-    #View(growthratetable[1000:nrow(growthratetable), ])
     growthparameters <- growthratetable[1:2,]
     rownames(growthparameters) <- c("Annual Mean Growth (%)", "Annual Growth StDev (%)")
     growthparameters[1,] <- apply(X=growthratetable, MARGIN=2, FUN=function(x){return(mean(x, na.rm=TRUE))}) # Calcul de la moyenne
