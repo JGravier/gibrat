@@ -207,7 +207,7 @@ return(res)
     
     simResults <- reactive({
         if (!is.null(simulationsData())){
-            simResults <- simulationsData()[,ncol(calcData()),]
+            simResults <- simulationsData()[,ncol(simulationsData()),]
             return(simResults)
         } else {
             return()
@@ -324,7 +324,7 @@ return(res)
     output$simresultDL <- downloadHandler(
         filename = function() {paste(values$dataSource, "_simresults", ".csv", sep="")},
         content = function(file){
-            exportDF <- simulationsData()[,ncol(calcData()),]
+            exportDF <- simulationsData()[,ncol(simulationsData()),]
             exportDF <- data.frame(ID=row.names(exportDF), exportDF)
             write.table(x=exportDF, file=file, sep=",", row.names=FALSE, col.names=TRUE, quote=TRUE)
         }
@@ -334,10 +334,11 @@ return(res)
         if (is.null(simMeans())){ return()}
         
         lastTime <- ncol(calcData())
+        lastSim <- ncol(simulationsData())
         
         cData <- na.omit(calcData()[,lastTime])
-        sData <- na.omit(simulationsData()[,lastTime,])
-        mData <- na.omit(simMeans()[,lastTime])
+        sData <- na.omit(simulationsData()[,lastSim,])
+        mData <- na.omit(simMeans()[,lastSim])
         
         maxpop <- max(max(cData),max(sData))
         minpop <- min(min(cData),min(sData))
