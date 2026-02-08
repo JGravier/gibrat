@@ -16,9 +16,7 @@ As soon as data are loaded, they're displayed in the `Base Data` tab, and a tabl
 The `Simulation` tab then allows to perform some Gibrat simulations, *i.e.* a computation where, starting from first observed populations, we compute randomly, for each period, a growth rate for each city. Those growth rates are based on a normal distribution around the observed mean and standard deviation.
 Computation – although optimised to run on each core of the server – can still be long, so, start with a low number of replications (the default 10 for example) and grow according to the time it takes.
 
+#### Adaptation
+Adaptation of Gibrat pop growth simulator for Windows users
+
 <hr>
-
-#### Contact
-For any question, feel free to contact [me](http://www.parisgeo.cnrs.fr/spip.php?article6416&lang=en)
-
-This website is released under the <a href="LICENSE.txt">**GNU AFFERO GENERAL PUBLIC LICENSE v3**</a>
